@@ -21,11 +21,8 @@ import { getCheckoutQuery } from './queries/checkout';
 import { getMenuQuery } from './queries/menu';
 import { getPageQuery, getPagesQuery } from './queries/page';
 import {
-  getFeaturedProductsQuery,
   getNewestProductsQuery,
-  getProductQuery,
-  getProductsCollectionQuery,
-  getProductsRecommedationsQuery,
+  getProductQuery, getProductsRecommedationsQuery,
   getStoreProductsQuery,
   searchProductsQuery
 } from './queries/product';
@@ -41,17 +38,11 @@ import {
   BigCommerceCollectionsOperation,
   BigCommerceCreateCartOperation,
   BigCommerceDeleteCartItemOperation,
-  BigCommerceEntityIdOperation,
-  BigCommerceFeaturedProductsOperation,
-  BigCommerceMenuOperation,
-  BigCommerceNewestProductsOperation,
-  BigCommercePage,
-  BigCommercePageOperation,
+  BigCommerceEntityIdOperation, BigCommerceMenuOperation,
+  BigCommerceNewestProductsOperation, BigCommercePage, BigCommercePageOperation,
   BigCommercePagesOperation,
   BigCommerceProduct,
-  BigCommerceProductOperation,
-  BigCommerceProductsCollectionOperation,
-  BigCommerceProductsOperation,
+  BigCommerceProductOperation, BigCommerceProductsOperation,
   BigCommerceRecommendationsOperation,
   BigCommerceSearchProductsOperation,
   BigCommerceUpdateCartItemOperation,
@@ -94,6 +85,10 @@ export async function bigCommerceFetch<T>({
   cache?: RequestCache;
 }): Promise<{ status: number; body: T } | never> {
   try {
+    // console.log(`>>>> endpoint: ${endpoint} `)
+    // console.log(`>>>> BIGCOMMERCE_CUSTOMER_IMPERSONATION_TOKEN: ${process.env.BIGCOMMERCE_CUSTOMER_IMPERSONATION_TOKEN} `)
+    
+    
     const result = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -405,6 +400,23 @@ export async function getCollectionProducts({
   reverse?: boolean;
   sortKey?: string;
 }): Promise<VercelProduct[]> {
+
+  const res = await bigCommerceFetch<BigCommerceNewestProductsOperation>({
+    query: getNewestProductsQuery,
+    variables: {
+      first: 10
+    }
+  });
+
+  if (!res.body.data.site.newestProducts) {
+    console.log(`No collection found for \`${collection}\``);
+    return [];
+  }
+  const productList = res.body.data.site.newestProducts.edges.map((item) => item.node);
+
+  return bigCommerceToVercelProducts(productList);
+  
+  /*
   const expectedCollectionBreakpoints: Record<string, string> = {
     'hidden-homepage-carousel': 'carousel_collection',
     'hidden-homepage-featured-items': 'featured_collection'
@@ -463,6 +475,7 @@ export async function getCollectionProducts({
   const productList = res.body.data.site.category.products.edges.map((item) => item.node);
 
   return bigCommerceToVercelProducts(productList);
+  */
 }
 
 export async function getCollections(): Promise<VercelCollection[]> {
@@ -486,12 +499,16 @@ export async function getCollections(): Promise<VercelCollection[]> {
 }
 
 export async function getMenu(handle: string): Promise<VercelMenu[]> {
+  console.log(">>> call getMenu");
+
   const configureMenuPath = (path: string) =>
     path
       .split('/')
       .filter((item) => item.length)
       .pop();
+
   const createVercelCollectionPath = (title: string, menuType: 'footer' | 'header') => menuType === 'header' ? `/search/${title}`: `/${title}`;
+
   const configureVercelMenu = (
     menuData: BigCommerceCategoryTreeItem[] | BigCommercePage[],
     isMenuData: boolean,
@@ -536,7 +553,10 @@ export async function getMenu(handle: string): Promise<VercelMenu[]> {
     return [];
   };
 
+  console.log(">>> call getMenu1");
+  
   if(handle === 'next-js-frontend-footer-menu') {
+    console.log(">>> call getMenu2");
     const res = await bigCommerceFetch<BigCommercePagesOperation>({
       query: getPagesQuery
     });
@@ -545,10 +565,14 @@ export async function getMenu(handle: string): Promise<VercelMenu[]> {
     return configureVercelMenu(webPages, true, 'footer');
   }
 
+  console.log("handle === 'next-js-frontend-header-menu'", handle === 'next-js-frontend-header-menu');
   if(handle === 'next-js-frontend-header-menu') {
+    console.log(">>>> here... ", 'next-js-frontend-header-menu');
     const res = await bigCommerceFetch<BigCommerceMenuOperation>({
       query: getMenuQuery
     });
+
+    console.log('res.body.data.site.categoryTree', res.body.data.site.categoryTree);
 
     return configureVercelMenu(res.body.data.site.categoryTree, true, 'header');
   }

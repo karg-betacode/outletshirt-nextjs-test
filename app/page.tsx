@@ -1,7 +1,6 @@
-import { Carousel } from 'components/carousel';
-import { ThreeItemGrid } from 'components/grid/three-items';
-import Footer from 'components/layout/footer';
-import { Suspense } from 'react';
+import { ThreeItemGrid } from "components/grid/three-items";
+import Footer from "components/layout/footer";
+import { Suspense } from "react";
 
 export const runtime = 'edge';
 
@@ -24,7 +23,7 @@ export default async function HomePage() {
     <>
       <ThreeItemGrid />
       <Suspense>
-        <Carousel />
+        {/* <Carousel /> */}
         <Suspense>
           <Footer />
         </Suspense>
